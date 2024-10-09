@@ -1,0 +1,151 @@
+﻿@model TestingProject.Models.SoOrder
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h1>Edit Order</h1>
+
+<form asp-action="Edit">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    
+    <!-- Hidden field for SoOrderId -->
+    <input type="hidden" asp-for="SoOrderId" />
+
+    <h4>Order Details</h4>
+    <hr />
+    
+    <div class="form-group">
+        <label asp-for="OrderNo" class="control-label"></label>
+        <input asp-for="OrderNo" class="form-control" />
+        <span asp-validation-for="OrderNo" class="text-danger"></span>
+    </div>
+    
+    <div class="form-group">
+        <label asp-for="OrderDate" class="control-label"></label>
+        <input asp-for="OrderDate" class="form-control" />
+        <span asp-validation-for="OrderDate" class="text-danger"></span>
+    </div>
+    
+    <div class="form-group">
+        <label asp-for="ComCustomerId" class="control-label"></label>
+        <select asp-for="ComCustomerId" class="form-control" asp-items="ViewBag.CustomerList"></select>
+        <span asp-validation-for="ComCustomerId" class="text-danger"></span>
+    </div>
+    
+    <div class="form-group">
+        <label asp-for="Address" class="control-label"></label>
+        <input asp-for="Address" class="form-control" />
+        <span asp-validation-for="Address" class="text-danger"></span>
+    </div>
+
+    <h4>Order Items</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Item Name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Line Total</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="itemRows">
+            @for (int i = 0; i < Model.SoItems.Count; i++)
+            {
+                <tr>
+                    <td>
+                        <input asp-for="SoItems[i].ItemName" class="form-control" />
+                        <input type="hidden" asp-for="SoItems[i].SoItemId" />
+                    </td>
+                    <td>
+                        <input asp-for="SoItems[i].Quantity" class="form-control" oninput="calculateTotals()" />
+                    </td>
+                    <td>
+                        <input asp-for="SoItems[i].Price" class="form-control" oninput="calculateTotals()" />
+                    </td>
+                    <td>
+                        <span class="line-total" id="lineTotal-@i">0.00</span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-danger" onclick="removeRow(this)">Remove</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    
+    <h4>Summary</h4>
+    <div>
+        <strong>Total Quantity:</strong> <span id="totalQuantity">0</span>
+    </div>
+    <div>
+        <strong>Total Price:</strong> <span id="totalPrice">0.00</span>
+    </div>
+
+    <div>
+        <button type="button" class="btn btn-secondary" onclick="addRow()">Add Item</button>
+    </div>
+
+    <div>
+        <input type="submit" value="Save" class="btn btn-primary" />
+    </div>
+</form>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function removeRow(button) {
+            var row = button.closest('tr');
+            row.parentNode.removeChild(row);
+            calculateTotals(); // Recalculate totals after removing a row
+        }
+
+        function addRow() {
+            var tableBody = document.getElementById('itemRows');
+            var rowCount = tableBody.getElementsByTagName('tr').length;
+            var newRow = `<tr>
+                <td><input name="SoItems[${rowCount}].ItemName" class="form-control" /></td>
+                <td><input name="SoItems[${rowCount}].Quantity" class="form-control" oninput="calculateTotals()" /></td>
+                <td><input name="SoItems[${rowCount}].Price" class="form-control" oninput="calculateTotals()" /></td>
+                <td><span class="line-total" id="lineTotal-${rowCount}">0.00</span></td>
+                <td><button type="button" class="btn btn-danger" onclick="removeRow(this)">Remove</button></td>
+            </tr>`;
+            tableBody.insertAdjacentHTML('beforeend', newRow);
+            calculateTotals(); // Recalculate totals after adding a new row
+        }
+
+        function calculateTotals() {
+            let totalQuantity = 0;
+            let totalPrice = 0.00;
+            const rows = document.querySelectorAll('#itemRows tr');
+
+            rows.forEach((row, index) => {
+                const quantityInput = row.querySelector('input[name*="Quantity"]');
+                const priceInput = row.querySelector('input[name*="Price"]');
+                const lineTotalDisplay = row.querySelector('.line-total');
+                
+                const quantity = parseInt(quantityInput.value) || 0; // Default to 0 if NaN
+                const price = parseFloat(priceInput.value) || 0.00; // Default to 0.00 if NaN
+
+                // Calculate line total and update display
+                const lineTotal = quantity * price;
+                lineTotalDisplay.textContent = lineTotal.toFixed(2); // Update line total for this row
+
+                totalQuantity += quantity;
+                totalPrice += lineTotal; // Add line total to overall total
+            });
+
+            // Update the summary fields
+            document.getElementById('totalQuantity').textContent = totalQuantity;
+            document.getElementById('totalPrice').textContent = totalPrice.toFixed(2); // Format to two decimal places
+        }
+
+        // Call calculateTotals() on page load to initialize totals
+        window.onload = calculateTotals;
+    </script>
+}
